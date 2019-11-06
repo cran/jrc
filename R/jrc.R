@@ -1,4 +1,5 @@
 #' @import stringr
+#' @import mime
 #' @importFrom jsonlite fromJSON
 
 #global variable with current page information
@@ -30,30 +31,10 @@ handle_http_request <- function( req ) {
     }
   }
   
-  file_extension <- str_extract( reqPage, "(?<=\\.)[^\\.]*$" )
-  file_extension_low <- tolower(file_extension) 
-  
-  if( file_extension_low == "html" | file_extension_low == "htm" ) {
-    content_type <- "text/html"
-  } else if( file_extension_low == "js" ) {
-    content_type <- "text/javascript"    
-  } else if( file_extension_low == "css" ) {
-    content_type <- "text/css"
-  } else if( file_extension_low == "svg") {
-    content_type <- "image/svg+xml"
-  } else if( file_extension_low == "png") {
-    content_type <- "image/png"
-  } else if( file_extension_low == "gif") {
-    content_type <- "image/gif"
-  } else if( file_extension_low == "jpeg" | file_extension_low == "jpg" ) {
-    content_type <- "image/jpeg"
-  } else {
-    content_type <- "text";
-    warning( "Serving file of unknown content type." )
-  }
-  
+  content_type <- mime::guess_type(reqPage)
   content <- readLines(reqPage, warn = F)
-  if(file_extension_low == "html") {
+  
+  if(content_type == "text/html") {
     jsfile <- str_c("<script src='http_root_jrc/jrc.js'></script>")
     stop <- F
     for(i in 1:length(content))
@@ -147,7 +128,6 @@ cleanStorage <- function() {
 }
 
 handle_websocket_open <- function( ws ) {
-  
   ws$onMessage( function( isBinary, msg ) {
     if( isBinary )
       stop( "Unexpected binary message received via WebSocket" )
@@ -280,7 +260,28 @@ openPage <- function(useViewer = T, rootDirectory = NULL, startPage = NULL, port
     call = handle_http_request,
     onWSOpen = handle_websocket_open )
   
-  if(is.null(port)) port <- randomPort(n = 50)
+  if(is.null(port)) {
+    if(compareVersion(as.character(packageVersion("httpuv")), "1.5.4") >= 0){
+      port <- randomPort(n = 50)
+    } else {
+      #if there is no randomPort function in the httpuv package
+      #in later versions of jrc this will be removed and httpuv >= 1.5.2 will be required
+      #code adopted from httpuv::randomPort
+      for (port in sample(seq(1024L, 49151L), 50)) {
+        s <- NULL
+        
+        # Check if port is open
+        tryCatch(
+          s <- startServer("0.0.0.0", port, list(), quiet = TRUE),
+          error = function(e) { }
+        )
+        if (!is.null(s)) {
+          s$stop()
+          break
+        }
+      }
+    }
+  }
   port <- as.integer(port)
   if(is.na(port))
     stop("Port number must be an integer number.")
@@ -440,7 +441,10 @@ setEnvironment <- function(envir) {
 #' @param html HTML code that will be added to the web page.
 #' 
 #' @examples 
-#' \donttest{sendHTML("Test...")
+#' \donttest{
+#' openPage(FALSE)
+#' 
+#' sendHTML("Test...")
 #' sendHTML("This is <b>bold</b>")
 #' sendHTML("<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>")}
 #' 
@@ -491,7 +495,7 @@ sendHTML <- function(html = "") {
 #' @examples 
 #' \donttest{
 #' openPage()
-#' callFunction("alert", "Some alertText")
+#' callFunction("alert", list("Some alertText"))
 #' callFunction("Math.random", assignTo = "randomNumber")
 #' }
 #' 

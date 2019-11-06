@@ -1,13 +1,23 @@
 //get current url
-var url = window.location.href.split("/")[2];
+var urlSpl = window.location.href.split("/"),
+	urlWs = "";
+if(urlSpl[0] == "https:")
+	urlWs += "wss://"
+else
+	urlWs += "ws://";
+urlWs += urlSpl[2] + "/";
+if(urlSpl[3] == "p")
+	urlWs += "p/" + urlSpl[4] + "/";
 
 jrc = {};
 
 // establish WebSocket link and handlers 
-jrc.ws = new WebSocket( "ws://" + url + "/" ); //, "RLC-0" );
+jrc.ws = new WebSocket( urlWs )
+
 jrc.ws.addEventListener( "open", function(event) { 
    // ...
 } ); 
+
 jrc.ws.addEventListener( "message", function(event) {
 	msg = JSON.parse( event.data );
 	if(msg[0] == "COM") {
@@ -26,7 +36,7 @@ jrc.ws.addEventListener( "message", function(event) {
 		window[msg[1]] = JSON.parse(msg[2]);
 		// check if we also got `keepAsVector` parameter and it's false
 		turnToScalar = function(v) {
-			if((v.length === undefined && typeof v !== "object") || typeof v === "string") return v;
+			if(!v || (v.length === undefined && typeof v !== "object") || typeof v === "string") return v;
 			if(Array.isArray(v)) {
 				if(v.length == 1) return v[0];
 				for(var i = 0; i < v.length; i++)
