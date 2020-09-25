@@ -87,6 +87,7 @@ openPage()
 callFunction("alert", list("Some alertText"))
 callFunction("Math.random", assignTo = "randomNumber")
 sendCommand("alert(randomNumber)")
+closePage()
 }
 
 }

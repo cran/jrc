@@ -12,6 +12,7 @@ openPage(
   browser = NULL,
   allowedFunctions = NULL,
   allowedVariables = NULL,
+  allowedDirectories = getwd(),
   connectionNumber = Inf,
   sessionVars = NULL,
   onStart = NULL
@@ -21,7 +22,7 @@ openPage(
 \item{useViewer}{If \code{TRUE}, the new web page will be opened in the RStudio Viewer. If \code{FALSE},
 a default web browser will be used (if other is not specified with the \code{browser} argument).}
 
-\item{rootDirectory}{A path to the root directory fpr the server. Any file, requested by the server
+\item{rootDirectory}{A path to the root directory for the server. Any file, requested by the server
 will be searched for in this directory. If \code{rootDirectory} is not 
 defined, the \code{http_root} in the package directory will be used as a root directory.}
 
@@ -45,6 +46,10 @@ for more information.}
 \item{allowedVariables}{List of variables that can be modified from a web page without any additional actions 
 on the R side. All other variable reassignments must be confirmed in the current R session. 
 This argument should be a vector of variable names. Check \code{\link{authorize}} and \code{\link{allowVariables}}
+for more information.}
+
+\item{allowedDirectories}{List of directories that can be accessed by the server. This argument should be a vector of
+paths (absolute or relative to the current working directory) to existing directories. Check \code{\link{allowDirectories}}
 for more information.}
 
 \item{connectionNumber}{Maximum number of connections that is allowed to be active simultaneously.}

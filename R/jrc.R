@@ -511,10 +511,18 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
 #'       on the R side. If \code{funs = NULL}, returns a list of all currently allowed functions. For more information,
 #'       please, check \code{\link{allowFunctions}}.
 #'    }
-#'    \item{\code{allowVariables(vars)}}{
+#'    \item{\code{allowVariables(vars = NULL)}}{
 #'       Adds variable names to  the list of allowed variables. These variables can be changed from a web page without 
 #'       authorization on the R side. If \code{vars = NULL}, then returns a vector of names of all currently allowed variables.
 #'       For more information, please, check \code{\link{allowVariables}}.
+#'    }
+#'    \item{\code{allowDirectories(dir = NULL)}}{
+#'       Allows app to serve files from an existing directory. Files from the \code{rootDirectory} can always be accessed
+#'       by the app. By default, the current working directory is
+#'       added to the list of the allowed directories, when the app is initialized. All the subdirectories of the allowed 
+#'       directories can also be accessed. Attempt to request file from outside allowed directory will produce 
+#'       \code{403 Forbidden} error. If \code{dirs = NULL}, then returns a vector of names of all currently allowed directories.
+#'       Also see \code{\link{allowDirectories}}.
 #'    }
 #'    \item{\code{startPage(path = NULL)}}{
 #'       Sets path to a starting web page of the app. Path can be full, relative to the app's root directory or relative
@@ -535,6 +543,7 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
 NULL
 
 #' @import mime
+#' @importFrom R.utils filePath
 #' @export
 App <- R6Class("App", cloneable = FALSE, public = list(
   addSession = function(session) {
@@ -666,11 +675,11 @@ App <- R6Class("App", cloneable = FALSE, public = list(
     if(is.null(private$serverHandle))
       stop("No server is running. Please, start a server before opening a page.")
     if( useViewer & !is.null( getOption("viewer") ) )
-      getOption("viewer")( str_c("http://localhost:", private$port, private$startP) )
+      getOption("viewer")( str_c("http://localhost:", private$port) )
     else{
       if(is.null(browser))
         browser = getOption("browser")
-      browseURL( str_c("http://localhost:", private$port, private$startP), browser = browser )
+      browseURL( str_c("http://localhost:", private$port), browser = browser )
     }
     
     
@@ -723,6 +732,23 @@ App <- R6Class("App", cloneable = FALSE, public = list(
     
     private$allowedVars <- unique(c(private$allowedVars, vars))
     invisible(self)
+  },
+  
+  allowDirectories = function(dirs = NULL) {
+    if(is.null(dirs)) return(private$allowedDirs)
+    if(!is.vector(dirs) | !is.character(dirs))
+      stop("'dirs' must be a vector of paths to directories")
+    
+    for(d in dirs) {
+      if(dir.exists(d)) {
+        private$allowedDirs <- unique(c(private$allowedDirs, 
+                                        normalizePath(d, winslash = "/")))
+      } else {
+        warning(str_interp("Directory ${d} doesn't exist and will not 
+                           be added to the list of allowed directories"))
+      }
+      invisible(self)
+    }
     
   },
   
@@ -733,36 +759,23 @@ App <- R6Class("App", cloneable = FALSE, public = list(
     if(!dir.exists(path))
       stop(str_c("There is no such directory: '", path, "'"))
     
-    private$rootDir <- normalizePath(path, winslash = .Platform$file.sep)
+    private$rootDir <- normalizePath(path, winslash = "/")
     
     invisible(self)
   },
   
   startPage = function(path = NULL) {
-    if(is.null(path)) {
-      if(is.null(private$startPagePath)){
-        return(path)
-      } else {
-        return(str_c(private$startPagePath, private$startP))
-      }
-    }
-    
-    if(file.exists(file.path(private$rootDir, path))){
-      if(substring(path, 1, 1) != .Platform$file.sep)
-        path <- str_c(.Platform$file.sep, path)
+    if(is.null(path)) return(private$startP)
+
+    if(file.exists(filePath(private$rootDir, path))){
       private$startP <- path
     } else {
       if(!file.exists(path))
         stop(str_c("There is no such file: '", path, "'"))
-      path <- normalizePath(path, winslash = .Platform$file.sep)
-      if(grepl(path, private$rootDir, fixed = T)) {
-        private$startP <- str_remove(path, private$rootDir)
-      } else {
-        spl <- strsplit(path, .Platform$file.sep)
-        private$startP <- str_c(.Platform$file.sep, spl[[1]][length(spl[[1]])])
-        private$startPagePath <- str_remove(path, private$startP)
-      }
+      private$startP <- normalizePath(path, winslash = "/")
     }
+    
+    invisible(self)
   },
   
   numberOfConnections = function(maxCon = NULL) {
@@ -770,7 +783,6 @@ App <- R6Class("App", cloneable = FALSE, public = list(
       return(private$maxCon)
     
     stopifnot(is.numeric(maxCon))
-    
     private$maxCon <- maxCon
     
     invisible(self)
@@ -795,7 +807,9 @@ App <- R6Class("App", cloneable = FALSE, public = list(
   
   initialize = function(rootDirectory = NULL, startPage = NULL, onStart = NULL, 
                         connectionNumber = Inf, allowedFunctions = c(), 
-                        allowedVariables = c(), sessionVars = NULL) {
+                        allowedVariables = c(), 
+                        allowedDirectories = getwd(),
+                        sessionVars = NULL) {
     if(is.null(rootDirectory)) 
       rootDirectory <- system.file("http_root", package = "jrc")
     self$rootDirectory(rootDirectory)
@@ -803,6 +817,8 @@ App <- R6Class("App", cloneable = FALSE, public = list(
     if(is.null(startPage))
       startPage <- system.file("http_root/index.html", package = "jrc")
     self$startPage(startPage)
+    
+    
     
     private$envir <- parent.frame(n = 2)
     
@@ -812,7 +828,7 @@ App <- R6Class("App", cloneable = FALSE, public = list(
     stopifnot(is.function(onStart))
     private$onStart <- onStart
     
-    
+    self$allowDirectories(allowedDirectories)
     self$allowFunctions(allowedFunctions)
     self$allowVariables(allowedVariables)
     self$sessionVariables(sessionVars)
@@ -827,13 +843,13 @@ App <- R6Class("App", cloneable = FALSE, public = list(
   envir = NULL,
   allowedFuns = c(),
   allowedVars = c(),
+  allowedDirs = c(),
   maxCon = Inf,
   port = NULL,
   waiting = FALSE,
   onStart = NULL,
   rootDir = "",
   startP = "",
-  startPagePath = NULL,
   sessionVars = list(),
   
   getApp = function() {
@@ -844,32 +860,44 @@ App <- R6Class("App", cloneable = FALSE, public = list(
         pack <- substring(strsplit(reqPage, "/")[[1]][2], 11)
         reqPage <- sub(str_c("_", pack), "", reqPage)
         reqPage <- tryCatch(system.file( reqPage, package = pack, mustWork = TRUE ),
-                 error = function(e) system.file( paste0("inst/", reqPage), package = pack)) 
+                 error = function(e) system.file( paste0("inst/", reqPage), package = pack))
       } else {
-        if(reqPage == "/index.html" || reqPage == "/")
+        if(reqPage == "/index.html" || reqPage == "/") {
           reqPage <- private$startP
-        if(reqPage == private$startP && !is.null(private$startPagePath)) {
-          reqPage <- str_c(private$startPagePath, private$startP)
         } else {
-          reqPage <- str_c(private$rootDir, reqPage)
+          dir <- private$rootDir
+          i <- 0
+          while(!file.exists(filePath(dir, reqPage)) & !grepl(dir, reqPage, fixed = TRUE) & 
+                i < length(self$allowDirectories()))
+          {
+            i <- i + 1
+            dir <- self$allowDirectories()[i]
+          }
+
+          if(file.exists(filePath(dir, reqPage))){
+            reqPage <- filePath(dir, reqPage)
+          } else if(!grepl(dir, reqPage, fixed = TRUE)) {
+            if(file.exists(reqPage) | file.exists(str_sub(reqPage, 2))) {
+              warning(str_interp("An attempt to access file in a forbidden directory: ${reqPage}"))
+              return( list( 
+                status = 403L,
+                headers = list( "Content-Type" = "text/html" ),
+                body = "403: Forbidden" ) )
+            } else {
+              warning(str_interp("File '${reqPage}' is not found"))
+              return( list( 
+                status = 404L,
+                headers = list( "Content-Type" = "text/html" ),
+                body = "404: Resource not found" ) )
+            }
+          }
         }
       }
-      
-      if( !file.exists(reqPage) ) {
-        reqPage <- str_remove(reqPage, private$rootDir)
-        if(!file.exists(reqPage)) {
-          warning(str_interp("File '${reqPage}' is not found"))
-          return( list( 
-            status = 404L,
-            headers = list( "Content-Type" = "text/html" ),
-            body = "404: Resource not found" ) )
-        }
-      }
-      
+
       content_type <- mime::guess_type(reqPage)
-      content <- readLines(reqPage, warn = F)
       
       if(content_type == "text/html") {
+        content <- readLines(reqPage, warn = F)
         jsfile <- str_c("<script src='http_root_jrc/jrc.js'></script>")
         stop <- F
         for(i in 1:length(content))
@@ -888,12 +916,17 @@ App <- R6Class("App", cloneable = FALSE, public = list(
         }
         if(!stop)
           content <- c(jsfile, content)
+        
+        content <- str_c( content, collapse = "\n" )
+      } else {
+        content <- reqPage
+        names(content) <- "file"
       }
       
       list(
         status = 200L,
         headers = list( 'Content-Type' = content_type ),
-        body = str_c( content, collapse="\n" )
+        body = content
       )
     }
     handle_websocket_open <- function( ws ) {
@@ -1001,7 +1034,7 @@ pkg.env <- new.env()
 #' 
 #' @param useViewer If \code{TRUE}, the new web page will be opened in the RStudio Viewer. If \code{FALSE},
 #' a default web browser will be used (if other is not specified with the \code{browser} argument).
-#' @param rootDirectory A path to the root directory fpr the server. Any file, requested by the server
+#' @param rootDirectory A path to the root directory for the server. Any file, requested by the server
 #' will be searched for in this directory. If \code{rootDirectory} is not 
 #' defined, the \code{http_root} in the package directory will be used as a root directory.
 #' @param startPage A path to an HTML file that should be used as a starting page of the app.
@@ -1020,6 +1053,9 @@ pkg.env <- new.env()
 #' @param allowedVariables List of variables that can be modified from a web page without any additional actions 
 #' on the R side. All other variable reassignments must be confirmed in the current R session. 
 #' This argument should be a vector of variable names. Check \code{\link{authorize}} and \code{\link{allowVariables}}
+#' for more information.
+#' @param allowedDirectories List of directories that can be accessed by the server. This argument should be a vector of
+#' paths (absolute or relative to the current working directory) to existing directories. Check \code{\link{allowDirectories}}
 #' for more information.
 #' @param connectionNumber Maximum number of connections that is allowed to be active simultaneously.
 #' @param sessionVars Named list of variables, that will be declared for each session, when a new connection is opened.
@@ -1040,12 +1076,13 @@ pkg.env <- new.env()
 #' @importFrom utils compareVersion
 #' @importFrom utils packageVersion
 openPage <- function(useViewer = TRUE, rootDirectory = NULL, startPage = NULL, port = NULL, browser = NULL,
-                     allowedFunctions = NULL, allowedVariables = NULL, connectionNumber = Inf, sessionVars = NULL,
-                     onStart = NULL) {
+                     allowedFunctions = NULL, allowedVariables = NULL, allowedDirectories = getwd(), 
+                     connectionNumber = Inf, sessionVars = NULL, onStart = NULL) {
   if(!is.null(pkg.env$app))
     closePage()
   
-  app <- App$new(rootDirectory, startPage, onStart, connectionNumber, allowedFunctions, allowedVariables, sessionVars)
+  app <- App$new(rootDirectory, startPage, onStart, connectionNumber, allowedFunctions, 
+                 allowedVariables, allowedDirectories, sessionVars)
   pkg.env$app <- app
   app$setEnvironment(parent.frame())
   app$startServer(port)
@@ -1327,6 +1364,7 @@ sendHTML <- function(html = "", sessionId = NULL, wait = 0) {
 #' callFunction("alert", list("Some alertText"))
 #' callFunction("Math.random", assignTo = "randomNumber")
 #' sendCommand("alert(randomNumber)")
+#' closePage()
 #' }
 #' 
 #' @seealso \code{\link{authorize}}, \code{\link{allowFunctions}}, \code{\link{allowVariables}},
@@ -1395,6 +1433,8 @@ authorize <- function(sessionId = NULL, messageId = NULL, show = FALSE) {
 #' Adds R function names to the list of functions, that
 #' can be called from a web page without manual confirmation on the R side.
 #' 
+#' This function is a wrapper around \code{allowFunctions} method of class \code{\link{App}}.
+#' 
 #' @param funs Vector of function names to be added to the list. If \code{NULL},
 #' returns names of all currently allowed R functions.
 #' 
@@ -1422,6 +1462,8 @@ allowFunctions <- function(funs = NULL) {
 #' This function adds variable names to the list of variables, that
 #' can be modified from a web page without manual confirmation on the R side.
 #' 
+#' This function is a wrapper around \code{allowVariables} method of class \code{\link{App}}.
+#' 
 #' @param vars Vector of variable names to be added to the list. If \code{NULL},
 #' returns names of all currently allowed variables.
 #' 
@@ -1442,6 +1484,42 @@ allowVariables <- function(vars = NULL) {
     stop("There is no opened page. Please, use 'openPage()' function to create one.")  
   
   pkg.env$app$allowVariables(vars)
+}
+
+#' Allow server to access files in the directory
+#' 
+#' This function adds paths to existing directories to the list of allowed directories,
+#' which can be accessed from the server. To any request for files from outside
+#' of the allowed directories the server will response with \code{403 Forbidden} error.
+#' \code{rootDirectory} (see \code{\link{openPage}}) can always be accessed. By default,
+#' when the app is initialized, current working directory  
+#' is added to the list of allowed directories. Further changes
+#' of the working directory will not have any affect on this list or files accessibility.
+#' 
+#' This function is a wrapper around \code{allowDirectories} method of class \code{\link{App}}.
+#' 
+#' @param dirs Vector of paths to existing directories. Can be absolute paths, or paths relative to 
+#' the current working directory. If the specified directory doesn't exist, it will be ignored and a
+#' warning will be produced. If \code{NULL}, returns absolute paths to all currently allowed directories.
+#' 
+#' @examples 
+#' \dontrun{
+#' openPage()
+#' # The directories must exist
+#' allowDirectories(c("~/directory1", "../anotherDirectory"))
+#' dirs <- allowDirectories()
+#' closePage()}
+#' 
+#' @return Absolute paths to all currently allowed directories, if \code{dirs = NULL}.
+#' 
+#' @seealso \code{\link{openPage}} (check arguments \code{rootDirectory} and \code{allowedDirectories}).
+#' 
+#' @export
+allowDirectories <- function(dirs = NULL) {
+  if(is.null(pkg.env$app))
+    stop("There is no opened page. Please, use 'openPage()' function to create one.")  
+  
+  pkg.env$app$allowDirectories(dirs)
 }
 
 #' Change size of the message storage
@@ -1470,7 +1548,8 @@ allowVariables <- function(vars = NULL) {
 #' If \code{NULL}, changes will be applied to all currently active sessions.
 #' 
 #' @examples 
-#' \donttest{openPage()
+#' \donttest{
+#' openPage()
 #' limitStorage(n = 10)
 #' limitStorage(size = 10 * 1024^2)
 #' closePage()}
@@ -1637,7 +1716,10 @@ getSessionIds <- function() {
 #' time <- Sys.time()
 #' sendCommand("jrc.sendCommand('print(\"Hi!\")')", sessionId = getSessionIds()[1],  wait = 3)
 #' 
+#' # this will close all sessions except for the one, that has just send a command to R session
 #' closeSession(inactive = Sys.time() - time)
+#' 
+#' # if there is only one active session, sessionId becomes an optional argument
 #' closeSession()
 #' 
 #' closePage()}
@@ -1753,7 +1835,8 @@ getSession <- function(sessionId = NULL){
 #' 
 #' @examples
 #' \donttest{f <- function(x) {x * 3}
-#' openPage(allowedFunctions = "f", allowedVariables = "k")
+#' openPage(allowedFunctions = "f", allowedVariables = "k", sessionVars = list(k = 0))
+#' k <- getSessionVariable("k")
 #' getPage()$openPage(FALSE)
 #' id1 <- getSessionIds()[1]
 #' id2 <- getSessionIds()[2]
