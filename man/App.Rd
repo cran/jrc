@@ -19,7 +19,7 @@ to stop. You can always get the \code{App} object for the currently running app 
 \section{Methods}{
 
 \describe{
-   \item{\code{new(rootDirectory = NULL, startPage = NULL, onStart = NULL, 
+   \item{\code{new(rootDirectory = NULL, startPage = NULL, onStart = NULL, onClose = NULL,  
    connectionNumber = Inf, allowedFunctions = c(), allowedVariables = c(), sessionVars = NULL)}}{
       Creates a new instance of class \code{App}. Check \code{\link{openPage}} man page for information about
       arguments.
@@ -42,7 +42,7 @@ to stop. You can always get the \code{App} object for the currently running app 
       and there is only one active session, returns it. See also \code{\link{getSession}}.
    }
    \item{\code{closeSession(sessionId = NULL, inactive = NULL, old = NULL)}}{
-      Closes websocket connection of one or multiple sessions and removes all the related data from the app. For more information on 
+      Closes WebSocket connection of one or multiple sessions and removes all the related data from the app. For more information on 
       the arguments, please, check \code{\link{closeSession}} man page.
    }
    \item{\code{getSessionIds()}}{
@@ -80,9 +80,13 @@ to stop. You can always get the \code{App} object for the currently running app 
       Can be a full path or a path relative to the current R working directory. If \code{path = NULL}, returns path to the
       current root directory.
    }
-   \item{\code{numberOfConnections(maxCon = NULL)}}{
-      Sets maximum number of connections that can be active simultaneously. If \code{maxCon = NULL}, returns current value of 
-      maximum allowed number of connections. Default value is \code{Inf}.
+   \item{\code{setLimits(...)}}{
+      Sets limits for memory usage, number of simultaneously active connections and amount of messages processed per second. 
+      These settings will apply for each new connection. To change memory usage for an existing session use method \code{setLimits}
+      of class \code{\link{Session}}. For information about possible arguments, please, check \code{\link{setLimits}}.
+   }
+   \item{\code{getPort()}}{
+      Returns number of the port which the running server listens to. After the app has been initialized, the port number cannot be changed.
    }
 }
 }

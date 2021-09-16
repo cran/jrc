@@ -5,9 +5,12 @@ if(urlSpl[0] == "https:")
 	urlWs += "wss://"
 else
 	urlWs += "ws://";
-urlWs += urlSpl[2] + "/";
-if(urlSpl[3] == "p")
-	urlWs += "p/" + urlSpl[4] + "/";
+urlWs += urlSpl[2] + "/" + urlSpl.slice(3).join("/");
+urlWs = urlWs.split("?")[0];
+if(urlWs.slice(-1) != "/")
+	urlWs += "/";
+// if(urlSpl[3] == "p")
+// 	urlWs += "p/" + urlSpl[4] + "/";
 
 jrc = {};
 
@@ -52,7 +55,7 @@ jrc.ws.addEventListener( "message", function(event) {
 			window[msg[1]] = turnToScalar(window[msg[1]]);			
 		}
 
-		if(window[msg[1]].length && window[msg[1]][0]._row) {
+		if(window[msg[1]] && window[msg[1]].length && window[msg[1]][0]._row) {
 			var converted = {}, rowname;
 			for(var i = 0; i < window[msg[1]].length; i++) {
 				rowname = window[msg[1]][i]._row;

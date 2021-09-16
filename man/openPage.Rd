@@ -15,7 +15,8 @@ openPage(
   allowedDirectories = getwd(),
   connectionNumber = Inf,
   sessionVars = NULL,
-  onStart = NULL
+  onStart = NULL,
+  onClose = NULL
 )
 }
 \arguments{
@@ -58,15 +59,19 @@ for more information.}
 Any changes to these variables will affect only a certain session. Thus they can be used, for instance, to 
 store a state of each session. For more information, please, check \code{\link{setSessionVariables}}.}
 
-\item{onStart}{A callback function that will be executed when a new connection is opened. This function gets a single 
+\item{onStart}{A callback function that will be executed, when a new connection is opened. This function gets a single 
 argument, which is an object of class \code{\link{Session}}. General purpose of the function is to populate each 
 new web page with some default content.}
+
+\item{onClose}{A callback function that will be executed, when a connection is closed. This function gets a single
+argument, which is an object of class \code{\link{Session}}. General purpose of the function is to store session 
+variables if needed or in any other form to finalize user's interaction with the app.}
 }
 \value{
 Object of class \code{\link{App}}.
 }
 \description{
-\code{openPage} starts a server and opens a new page with a websocket connection between it and the current
+\code{openPage} starts a server and opens a new page with a WebSocket connection between it and the current
 R session. After that, messages can be exchanged between R session and the web page to generate content on the
 web page and to trigger calculations in R as a response to user activity on the page.
 }
@@ -80,7 +85,7 @@ web page and to trigger calculations in R as a response to user activity on the 
    \item{Data is any variable that is sent to or from the R session. It must always come with a 
    name of the variable to which it should be assigned on the receiving side. For more information, please,
    check \code{\link{sendData}}.}
-   \item{Function calls can be triggered on each side of the websocket connection. Alongside the function name,
+   \item{Function calls can be triggered on each side of the WebSocket connection. Alongside the function name,
    one can also send a list of arguments and name of a variable to which the returned value of the function will
    be assigned. For more information, please, check \code{\link{callFunction}}.}
    \item{Unlike other types of messages, HTML code can be sent only from the R session to a web page. This code will
@@ -93,6 +98,6 @@ to open a new web page. It also stores a new app object in the package namespace
 wrapper functions to access it.
 }
 \seealso{
-\code{\link{closePage}}, \code{\link{setEnvironment}}, \code{\link{limitStorage}}, \code{\link{allowVariables}},
+\code{\link{closePage}}, \code{\link{setEnvironment}}, \code{\link{setLimits}}, \code{\link{allowVariables}},
 \code{\link{allowFunctions}}, \code{\link{setSessionVariables}}.
 }

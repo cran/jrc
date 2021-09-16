@@ -1,8 +1,8 @@
 Package: jrc
 Type: Package
 Title: Exchange Commands Between R and 'JavaScript'
-Version: 0.4.0
-Date: 2020-09-25
+Version: 0.5.0
+Date: 2021-09-13
 Authors@R: c(
 	person("Svetlana", "Ovchinnikova", role = c("aut", "cre"), email = "s.ovchinnikova@zmbh.uni-heidelberg.de"),
 	person("Simon", "Anders", role = c("aut"), email = "sanders@fs.tum.de")
@@ -15,9 +15,9 @@ URL: https://github.com/anders-biostat/jrc
 BugReports: https://github.com/anders-biostat/jrc/issues
 Suggests: testthat
 NeedsCompilation: no
-Packaged: 2020-09-25 20:51:51 UTC; tyranchick
+Packaged: 2021-09-16 08:42:11 UTC; tyranchick
 Author: Svetlana Ovchinnikova [aut, cre],
   Simon Anders [aut]
 Maintainer: Svetlana Ovchinnikova <s.ovchinnikova@zmbh.uni-heidelberg.de>
 Repository: CRAN
-Date/Publication: 2020-09-25 21:20:03 UTC
+Date/Publication: 2021-09-16 09:40:02 UTC
