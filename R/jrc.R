@@ -248,7 +248,7 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
     
     stopifnot(is.character(command))
     
-    private$ws$send( toJSON(c("COM", command)) )
+    private$ws$send( toJSON(list(type = "COM", com = command)) )
     
     if(wait > 0)
       private$wait(wait)
@@ -270,7 +270,9 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
       self$sendData("___args___", arguments, ...)
     }
     
-    private$ws$send(toJSON(c("FUN", name, assignTo)))
+    private$ws$send(toJSON(list(type = "FUN", name = name, 
+                                assignTo = assignTo, 
+                                thisArg = thisArg)))
     
     if(wait > 0)
       private$wait(wait)
@@ -293,9 +295,9 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
       dataframe <- "columns"
       matrix <- "columnmajor"
     }
-    private$ws$send( toJSON(c("DATA", variableName, 
-                              toJSON(variable, digits = NA, dataframe = dataframe, matrix = matrix), 
-                              keepAsVector)))
+    private$ws$send( toJSON(list(type = "DATA", variableName = variableName, 
+                              variable = toJSON(variable, digits = NA, dataframe = dataframe, matrix = matrix), 
+                              keepAsVector = keepAsVector)))
     if(wait > 0)
       private$wait(wait)
   },
@@ -306,7 +308,7 @@ Session <- R6Class("Session", cloneable = FALSE, public = list(
     
     stopifnot(is.character(html))
     
-    private$ws$send( toJSON(c("HTML", html)) )
+    private$ws$send( toJSON(list(type = "HTML", html = html)) )
     
     if(wait > 0)
       private$wait(wait)
@@ -1069,7 +1071,7 @@ App <- R6Class("App", cloneable = FALSE, public = list(
           self$closeSession(session$id)
       })
       
-      ws$send(toJSON(c("ID", session$id)))
+      ws$send(toJSON(list(type = "ID", id = session$id)))
       
       session$sessionVariables(private$sessionVars)
       session$setLimits(private$limits)
@@ -1149,6 +1151,7 @@ pkg.env <- new.env()
 #' @param onClose A callback function that will be executed, when a connection is closed. This function gets a single
 #' argument, which is an object of class \code{\link{Session}}. General purpose of the function is to store session 
 #' variables if needed or in any other form to finalize user's interaction with the app.
+#' @param onlyServer If \code{TRUE}, then an app will initialise without trying to open a new page in a browser.
 #' 
 #' @seealso \code{\link{closePage}}, \code{\link{setEnvironment}}, \code{\link{setLimits}}, \code{\link{allowVariables}},
 #' \code{\link{allowFunctions}}, \code{\link{setSessionVariables}}.
@@ -1162,7 +1165,8 @@ pkg.env <- new.env()
 #' @importFrom utils packageVersion
 openPage <- function(useViewer = TRUE, rootDirectory = NULL, startPage = NULL, port = NULL, browser = NULL,
                      allowedFunctions = NULL, allowedVariables = NULL, allowedDirectories = getwd(), 
-                     connectionNumber = Inf, sessionVars = NULL, onStart = NULL, onClose = NULL) {
+                     connectionNumber = Inf, sessionVars = NULL, onStart = NULL, onClose = NULL, 
+                     onlyServer = FALSE) {
   if(!is.null(pkg.env$app))
     closePage()
   
@@ -1171,7 +1175,8 @@ openPage <- function(useViewer = TRUE, rootDirectory = NULL, startPage = NULL, p
   pkg.env$app <- app
   app$setEnvironment(parent.frame())
   app$startServer(port)
-  app$openPage(useViewer, browser)
+  if(!onlyServer)
+    app$openPage(useViewer, browser)
   
   invisible(app)
 }
@@ -1439,7 +1444,7 @@ sendHTML <- function(html = "", sessionId = NULL, wait = 0) {
 #' is referred to as \code{this} inside the function (e.g. in
 #' \code{someObject.myFunction()} function \code{myFunction} is a method of \code{someObject}).
 #' \code{thisArg} specifies object that will be known as \code{this} inside the function. If \code{NULL},
-#' the function will be applied to the global object (\code{window}).
+#' the function will use its parent as \code{this} object (as it happens in JavaScript by default).
 #' @param ... further arguments passed to \code{\link{sendData}}. It is used to send
 #' \code{arguments} to the web page.
 #' 
