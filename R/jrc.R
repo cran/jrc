@@ -1233,7 +1233,9 @@ sendMessage <- function(type, id, ...) {
 #' from the session will be considered as a reply.
 #' 
 #' @examples  
-#' \donttest{k <- 0
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' k <- 0
 #' openPage()
 #' sendCommand(paste0("button = document.createElement('input');",
 #'               "button.type = 'button';",
@@ -1309,7 +1311,9 @@ closePage <- function() {
 #' from the session will be considered as a reply.
 #' 
 #' @examples 
-#' \donttest{openPage()
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage()
 #' x <- 1:100
 #' sendData("x", x)
 #' sendCommand("console.log(x);")
@@ -1341,7 +1345,8 @@ sendData <- function(variableName, variable, keepAsVector = FALSE, rowwise = TRU
 #' @param envir Environment to be used as outer environment. 
 #' 
 #' @examples
-#' \donttest{
+#' \dontrun{
+#' # to run this example an installed web browser is required
 #' openPage()
 #' e <- new.env()
 #' setEnvironment(e)
@@ -1373,7 +1378,8 @@ setEnvironment <- function(envir) {
 #' from the session will be considered as a reply.
 #' 
 #' @examples 
-#' \donttest{
+#' \dontrun{
+#' # to run this example an installed web browser is required
 #' openPage(FALSE)
 #' 
 #' sendHTML("Test...")
@@ -1449,7 +1455,8 @@ sendHTML <- function(html = "", sessionId = NULL, wait = 0) {
 #' \code{arguments} to the web page.
 #' 
 #' @examples 
-#' \donttest{
+#' \dontrun{
+#' # to run this example an installed web browser is required
 #' openPage()
 #' callFunction("alert", list("Some alertText"))
 #' callFunction("Math.random", assignTo = "randomNumber")
@@ -1490,7 +1497,9 @@ callFunction <- function(name, arguments = NULL, assignTo = NULL, wait = 0, sess
 #' do nothing.
 #'
 #' @examples
-#' \donttest{openPage()
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage()
 #' 
 #' callFunction("jrc.sendCommand", list("k <<- 10"), wait = 1)
 #' allowVariables("x")
@@ -1531,7 +1540,9 @@ authorize <- function(sessionId = NULL, messageId = NULL, show = FALSE) {
 #' @return Names of all currently allowed functions if \code{funs = NULL}.
 #' 
 #' @examples
-#' \donttest{openPage()
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage()
 #' allowFunctions(c("myFunction1", "print", "someObject$method"))
 #' funs <- allowFunctions()
 #' closePage()}
@@ -1558,7 +1569,9 @@ allowFunctions <- function(funs = NULL) {
 #' returns names of all currently allowed variables.
 #' 
 #' @examples 
-#' \donttest{openPage()
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage()
 #' allowVariables(c("myVariable", "anotherOne"))
 #' vars <- allowVariables()
 #' closePage()}
@@ -1594,6 +1607,7 @@ allowVariables <- function(vars = NULL) {
 #' 
 #' @examples 
 #' \dontrun{
+#' # to run this example an installed web browser is required
 #' openPage()
 #' # The directories must exist
 #' allowDirectories(c("~/directory1", "../anotherDirectory"))
@@ -1664,7 +1678,8 @@ allowDirectories <- function(dirs = NULL) {
 #' limit is reached, all the incoming messages will be ignored.
 #' 
 #' @examples 
-#' \donttest{
+#' \dontrun{
+#' # to run this example an installed web browser is required
 #' openPage()
 #' setLimits(maxCon = 10)
 #' setLimits(varSize = 10 * 1024^2)
@@ -1722,7 +1737,9 @@ getPage <- function() {
 #' new opened session as default ones.
 #' 
 #' @examples
-#' \donttest{openPage(allowedFunctions = "f", allowedVariables = "res")
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage(allowedFunctions = "f", allowedVariables = "res")
 #' 
 #' m <- 1
 #' f <- function() {v * m}
@@ -1788,7 +1805,9 @@ getSessionIds <- function() {
 #' will be closed.
 #' 
 #' @examples
-#' \donttest{start <- Sys.time()
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' start <- Sys.time()
 #' openPage()
 #' 
 #' app <- getPage()
@@ -1928,7 +1947,9 @@ getSession <- function(sessionId = NULL){
 #' @return Requested variable
 #' 
 #' @examples
-#' \donttest{f <- function(x) {x * 3}
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' f <- function(x) {x * 3}
 #' openPage(allowedFunctions = "f", allowedVariables = "k", sessionVars = list(k = 0))
 #' k <- getSessionVariable("k")
 #' getPage()$openPage(FALSE)
@@ -1966,7 +1987,9 @@ getSessionVariable <- function(varName, sessionId = NULL) {
 #' @param sessionId ID of the session. If there is only one active session, this argument becomes optional.
 #' 
 #' @examples
-#' \donttest{openPage(allowedVariables = "k", sessionVars = list(k = 10))
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage(allowedVariables = "k", sessionVars = list(k = 10))
 #' 
 #' k <- -1
 #' getPage()$openPage(FALSE)
@@ -2011,4 +2034,56 @@ getPort <- function() {
     stop("There is no opened page. Please, use 'openPage()' function to create one.")
   
   pkg.env$app$getPort()
+}
+
+#' Listen to the server
+#' 
+#' When R session is not interactive, messages from the server are not processed automatically. In this case, one needs to 
+#' keep this function running.
+#' This function, is a wrapper around \code{\link[later]{run_now}} or \code{\link[httpuv]{service}}. It runs 
+#' the \code{\link[httpuv]{service}} in a loop with a specified condition.
+#' 
+#' @param time Time (in seconds), during which the R session should listen to the server. By default, the function runs until
+#' it is not interrupted (\code{time = Inf}).
+#' @param activeSessions The function runs, until there is at least one active session in the provided app. If there is only
+#' one active app, this argument can be set to \code{TRUE} for the same effect.
+#' @param condition Custom condition. This argument must be a function that returns \code{TRUE} or \code{FALSE}. R session will 
+#' listen to the server, while the condition function returns \code{TRUE}.
+#' 
+#' @examples
+#' \dontrun{
+#' # to run this example an installed web browser is required
+#' openPage()
+#' listen(time = 3)}
+#' 
+#' @importFrom httpuv service
+#' @export
+listen <- function(time = Inf, activeSessions = NULL, condition = NULL) {
+  if(!is.null(condition)) {
+    if(!is.function(condition))
+      stop("'codition' must be a function that return TRUE or FALSE")
+    message("Condition function is defined. Listening to the server, while it is TRUE")
+    while(isTRUE(condition()))
+      httpuv::service()
+  } else if(!is.null(activeSessions)) {
+    if(isTRUE(activeSessions)) {
+      if(is.null(pkg.env$app)) 
+        stop("There is no opened page. Please, use 'openPage()' function to create one.")
+      activeSessions <- pkg.env$app
+    }
+    if(!("App" %in% class(activeSessions)))
+      stop("'activeSessions' must be a jrc app or 'TRUE'")
+    
+    message("'activeSessions' is defined. Listening to the server, until the app has at least one active session.")
+    while(length(activeSessions$getSessionIds()) > 0)
+      httpuv::service()    
+  } else {
+    if(!is.numeric(time))
+      stop("'time' must be a number")
+    
+    t <- Sys.time()
+    
+    while(difftime(Sys.time(), t, units = "secs") < time)
+      httpuv::service()
+  }
 }
